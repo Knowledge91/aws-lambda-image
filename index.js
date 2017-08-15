@@ -14,10 +14,24 @@ const Config         = require("./lib/Config");
 const fs             = require("fs");
 const path           = require("path");
 
+var mysql = require('promise-mysql');
+
+var connection, tinpon, productVariations, tinponId, s3ObjectKey;
+let host = "wegoloco-cluster.cluster-cb5jwvcwolur.eu-west-1.rds.amazonaws.com";
+let user = "admin";
+let password = "1269Y5$ST50j";
+let database = 'wegoloco';
+let charset = 'utf8mb4';
+
 // Lambda Handler
 exports.handler = (event, context, callback) => {
 
+    console.log("event ", event, event.s3);
     var eventRecord = eventParser(event);
+
+    // Tinpons/23/main/1.png
+    s3ObjectKey = eventRecord.object.key;
+
     if (eventRecord) {
         process(eventRecord, callback);
     } else {
@@ -38,9 +52,14 @@ function process(s3Object, callback) {
     processor.run(config)
     .then((processedImages) => {
         const message = "OK, " + processedImages + " images were processed.";
-        console.log(message);
-        callback(null, message);
-        return;
+
+      //  console.log("path ", globalImage.Key);
+        return saveImageInRDS();
+    })
+    .then((message) => {
+      console.log("Message ",message);
+      callback(null, message);
+      return;
     })
     .catch((messages) => {
         if ( messages === "Object was already processed." ) {
@@ -56,4 +75,32 @@ function process(s3Object, callback) {
             return;
         }
     });
+}
+
+var saveImageInRDS = function() {
+    var promise = new Promise((resolve, reject) => {
+      mysql.createConnection({
+          host: host,
+          user: user,
+          password: password,
+          database: database,
+          charset: charset
+      }).then(function(conn){
+        connection = conn
+
+        const s3KeyArray = s3ObjectKey.split("/");
+
+        console.log("RDS connection established");
+        var query = connection.query("INSERT INTO tinpon_images SET tinpon_id = '"+s3KeyArray[1]+"', type = '"+s3KeyArray[2]+"', image = '"+s3ObjectKey+"';");
+        return query;
+      }).then( function(result) {
+        connection.end();
+        resolve("SUCCESS: RDS image inserted");
+      }).catch( function(error) {
+        reject(error);
+      });
+      resolve("Seuccess");
+    });
+
+    return promise;
 }

@@ -1,5 +1,5 @@
 {
-  "name": "aws-lambda-image",
+  "name": "WeGoLocoImageResize",
   "version": "0.13.0",
   "description": "An AWS Lambda Function to resize/reduce images automatically",
   "config": {
@@ -50,7 +50,8 @@
     "aws-sdk": "^2.24.0",
     "gm": "^1.23.0",
     "image-type": "^3.0.0",
-    "path-template": "0.0.0"
+    "path-template": "0.0.0",
+    "promise-mysql": "^3.0.2"
   },
   "devDependencies": {
     "ava": "^0.18.2",
